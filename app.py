@@ -6,11 +6,16 @@ from linebot.models import *
 from thingspeak import Thingspeak
 
 app = Flask(__name__)
-line_bot_api_key = os.getenv('LINE_CHANNEL_ACCESS_TOKEN')
+line_bot_api_key = os.getenv('LINE_BOT_API_KEY')
+
+if not line_bot_api_key:
+    raise ValueError("No LINE_BOT_API_KEY environment variable set")
+
+line_bot_api = LineBotApi(line_bot_api_key)
 line_bot_secret_key = os.getenv('LINE_CHANNEL_SECRET_KEY')
 
 # Channel Access Token
-line_bot_api = LineBotApi(line_bot_api_key)
+
 # Channel Secret
 handler = WebhookHandler(line_bot_secret_key)
 
