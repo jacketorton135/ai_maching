@@ -9,10 +9,14 @@ import openai
 
 app = Flask(__name__)
 
-# 確保環境變量正確設置
+# 確保環境量正確設置
 line_bot_api_key = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
 line_bot_secret_key = os.environ.get('LINE_CHANNEL_SECRET_KEY')
 openai_api_key = os.environ.get('OPENAI_API_KEY')
+
+print(f"LINE_CHANNEL_ACCESS_TOKEN: {line_bot_api_key}")
+print(f"LINE_CHANNEL_SECRET_KEY: {line_bot_secret_key}")
+print(f"OPENAI_API_KEY: {openai_api_key}")
 
 # Channel Access Token
 line_bot_api = LineBotApi(line_bot_api_key)
@@ -23,7 +27,7 @@ handler = WebhookHandler(line_bot_secret_key)
 auth_user_list = os.environ.get('AUTH_USER_LIST', '').split(',')
 print('auth_user_list', auth_user_list)
 
-# 監聽所有來自 /callback 的 Post Request
+# 監聽所有来自 /callback 的 Post Request
 @app.route("/callback", methods=['POST'])
 def callback():
     # get X-Line-Signature header value
@@ -83,7 +87,7 @@ def handle_message(event):
                 line_bot_api.reply_message(event.reply_token, message)
             except Exception as e:
                 print(e)
-                message = TextSendMessage(text='Error with OpenAI API')
+                message = TextSendMessage(text=f'Error with OpenAI API: {str(e)}')
                 line_bot_api.reply_message(event.reply_token, message)
         else:  # 學使用者說話
             message = TextSendMessage(text=event.message.text)
@@ -95,7 +99,6 @@ def handle_message(event):
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
 
 
 
