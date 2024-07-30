@@ -25,7 +25,7 @@ auth_user_ai_list = os.environ.get('AUTH_USER_AI_LIST', '').split(',')
 print('auth_user_list', auth_user_list)
 print('auth_user_ai_list', auth_user_ai_list)
 
-# 菸聽所有來自 /callback 的 Post Request
+# 監聽所有来自 /callback 的 Post Request
 @app.route("/callback", methods=['POST'])
 def callback():
     # get X-Line-Signature header value
@@ -73,22 +73,19 @@ def handle_message(event):
         elif check == 'ai:' and get_request_user_id in auth_user_ai_list:
             try:
                 openai.api_key = openai_api_key
-                response = openai.ChatCompletion.create(
+                response = openai.Completion.create(
                     model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": "You are a helpful assistant."},
-                        {"role": "user", "content": user_msg}
-                    ],
+                    prompt=user_msg,
                     temperature=0.5,
                     max_tokens=500
                 )
-                reply_msg = response['choices'][0]['message']['content'].strip()
+                reply_msg = response.choices[0].text.strip()
                 print('reply_msg', reply_msg)
                 message = TextSendMessage(text=reply_msg)
                 line_bot_api.reply_message(event.reply_token, message)
             except Exception as e:
                 print(e)
-                message = TextSendMessage(text=f'Error with OpenAI API: {str(e)}')
+                message = TextSendMessage(text='Error with OpenAI API')
                 line_bot_api.reply_message(event.reply_token, message)
         else:  # 學使用者說話
             message = TextSendMessage(text=event.message.text)
