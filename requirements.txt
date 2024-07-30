@@ -1,8 +1,9 @@
-Flask==1.1.2
-requests==2.28.1
-matplotlib==3.3.4
-pytz==2023.3
-pyimgur==0.3.2
-pillow==9.4.0
-linebot==2.23.0
-openai==1.37.1
+flask
+requests
+json
+matplotlib
+pytz
+pyimgur
+pillow
+linebot
+openai
