@@ -36,7 +36,7 @@ MarkupSafe==2.1.5
 matplotlib==3.8.3
 multidict==6.0.5
 numpy==1.26.4
-openai
+openai < 1.0.0
 packaging==23.2
 pillow==10.2.0
 pydantic==2.6.1
