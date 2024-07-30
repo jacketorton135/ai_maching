@@ -21,9 +21,7 @@ handler = WebhookHandler(line_bot_secret_key)
 
 # Auth User list
 auth_user_list = os.environ.get('AUTH_USER_LIST', '').split(',')
-auth_user_ai_list = os.environ.get('AUTH_USER_AI_LIST', '').split(',')
 print('auth_user_list', auth_user_list)
-print('auth_user_ai_list', auth_user_ai_list)
 
 # 監聽所有來自 /callback 的 Post Request
 @app.route("/callback", methods=['POST'])
@@ -70,11 +68,11 @@ def handle_message(event):
                 messages = [ImageSendMessage(original_content_url=chart_link, preview_image_url=pre_chart_link)
                             for chart_link, pre_chart_link in zip(chart_links, pre_chart_links)]
                 line_bot_api.reply_message(event.reply_token, messages)
-        elif check == 'ai:' and get_request_user_id in auth_user_ai_list:
+        elif check == 'ai:':
             try:
                 openai.api_key = openai_api_key
                 response = openai.Completion.create(
-                    model="gpt-3.5-turbo",
+                    model="text-davinci-003",
                     prompt=user_msg,
                     temperature=0.5,
                     max_tokens=500
@@ -97,6 +95,7 @@ def handle_message(event):
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
