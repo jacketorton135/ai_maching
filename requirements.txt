@@ -3,5 +3,5 @@ line-bot-sdk==1.18.0
 openai==0.27.0
 requests==2.25.1
 matplotlib==3.4.2
-pandas==1.2.4
+pandas==1.5.3
 imgurpython==1.1.7
