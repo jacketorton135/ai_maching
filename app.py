@@ -6,6 +6,7 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import *
 from thingspeak import Thingspeak
 import openai
+import traceback
 
 app = Flask(__name__)
 
@@ -74,7 +75,7 @@ def handle_message(event):
             try:
                 openai.api_key = openai_api_key
                 response = openai.Completion.create(
-                    model="text-davinci-003",
+                    model="gpt-3.5-turbo",
                     prompt=user_msg,
                     temperature=0.5,
                     max_tokens=500
@@ -85,6 +86,7 @@ def handle_message(event):
                 line_bot_api.reply_message(event.reply_token, message)
             except Exception as e:
                 print(e)
+                print(traceback.format_exc())
                 message = TextSendMessage(text='Error with OpenAI API')
                 line_bot_api.reply_message(event.reply_token, message)
         else:  # 学使用者说话
@@ -97,17 +99,3 @@ def handle_message(event):
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
