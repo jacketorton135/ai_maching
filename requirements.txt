@@ -8,3 +8,4 @@ imgurpython==1.1.7
 gunicorn==20.1.0
 pyimgurpyimgur==0.6.0
 Werkzeug==2.0.3
+pyimgur==0.6.0
