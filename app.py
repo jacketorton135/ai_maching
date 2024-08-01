@@ -10,6 +10,11 @@ import os
 import openai
 import time
 import traceback
+from dotenv import load_dotenv
+from thingspeak import Thingspeak  # 確認 thingspeak.py 和 app.py 在同一目錄下
+
+# 加載 .env 文件中的環境變數
+load_dotenv()
 
 app = Flask(__name__)
 static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
@@ -21,23 +26,22 @@ handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 # OPENAI API Key初始化設定
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
+# 授權用戶列表
+auth_user_list = ["U39b3f15d09b42fbd028e5689156a49e1"]  # 允許使用圖表功能的用戶ID列表
+auth_user_ai_list = ["U39b3f15d09b42fbd028e5689156a49e1"]  # 允許使用AI功能的用戶ID列表
+
 def GPT_response(text):
-    # 接收回應
     response = openai.Completion.create(model="gpt-3.5-turbo-instruct", prompt=text, temperature=0.5, max_tokens=500)
     print(response)
-    # 重組回應
     answer = response['choices'][0]['text'].replace('。 ', '')
     return answer
 
 # 監聽所有來自 /callback 的 Post Request
 @app.route("/callback", methods=['POST'])
 def callback():
-    # get X-Line-Signature header value
     signature = request.headers['X-Line-Signature']
-    # get request body as text
     body = request.get_data(as_text=True)
     app.logger.info("Request body: " + body)
-    # handle webhook body
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
@@ -47,14 +51,39 @@ def callback():
 # 處理訊息
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    msg = event.message.text
-    try:
-        GPT_answer = GPT_response(msg)
-        print(GPT_answer)
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(GPT_answer))
-    except:
-        print(traceback.format_exc())
-        line_bot_api.reply_message(event.reply_token, TextSendMessage('你所使用的OPENAI API key額度可能已經超過，請於後台Log內確認錯誤訊息'))
+    get_request_user_id = event.source.user_id
+    print('get_request_user_id', get_request_user_id)
+    input_msg = event.message.text
+    check = input_msg[:3].lower()
+    user_msg = input_msg[3:]  # 2374700,2KNDBSF9FN4M5EY1
+    print('check', check)
+    print('user_msg', user_msg)
+    if get_request_user_id in auth_user_list:
+        if check == "圖表:":
+            channel_id, key = user_msg.split(',')
+            print("User channel_id: ", channel_id, "Read_key: ", key)
+            ts = Thingspeak()
+            results = ts.process_and_upload_all_fields(channel_id, key)
+            if results == 'Not Found':
+                message = TextSendMessage(text="User not found")
+                line_bot_api.reply_message(event.reply_token, message)
+            else:
+                image_messages = []
+                for field, urls in results.items():
+                    image_message = ImageSendMessage(
+                        original_content_url=urls['image_url'],
+                        preview_image_url=urls['pre_image_url']
+                    )
+                    image_messages.append(image_message)
+                line_bot_api.reply_message(event.reply_token, image_messages)
+        elif check == 'ai:' and get_request_user_id in auth_user_ai_list:
+            try:
+                GPT_answer = GPT_response(user_msg)
+                print(GPT_answer)
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(GPT_answer))
+            except:
+                print(traceback.format_exc())
+                line_bot_api.reply_message(event.reply_token, TextSendMessage('你所使用的OPENAI API key額度可能已經超過，請於後台Log內確認錯誤訊息'))
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
