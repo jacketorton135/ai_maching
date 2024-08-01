@@ -7,18 +7,18 @@ import pytz
 import pyimgur
 from PIL import Image
 
-class Thingspeak:
+class Thingspeak():
     def get_data_from_thingspeak(self, channel_id, api_read_key):
         url = f'https://thingspeak.com/channels/{channel_id}/feed.json?api_key={api_read_key}'
         data = requests.get(url).json()
         if data.get('error') == 'Not Found':
             return 'Not Found', 'Not Found'
-        time_list = []
-        bpm_list = []
-        temperature_list = []
-        humidity_list = []
-        body_temperature_list = []
-        ECG_list = []
+        time_list = list()
+        bpm_list = list()
+        temperature_list = list()
+        humidity_list = list()
+        body_temperature_list = list()
+        ECG_list = list()
         for data_point in data['feeds']:
             time_list.append(data_point.get('created_at'))
             bpm_list.append(data_point.get('field1'))
@@ -64,7 +64,7 @@ class Thingspeak:
             img_resized.save(f'pre_{label}_chart.jpg')
 
     def upload_to_imgur(self):
-        CLIENT_ID = "8f20812be5e02f1"  # 使用你獲得的 Client ID
+        CLIENT_ID = os.environ.get('IMGUR_CLIENT_ID')
         urls = []
         pre_urls = []
         for label in ['BPM', 'temperature', 'humidity', 'body temperature', 'ECG']:
