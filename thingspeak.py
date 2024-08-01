@@ -1,4 +1,3 @@
-import os
 import requests
 import json
 import matplotlib.pyplot as plt
@@ -6,6 +5,7 @@ from datetime import datetime
 import pytz
 import pyimgur
 from PIL import Image
+import os
 
 class Thingspeak():
     def get_data_from_thingspeak(self, channel_id, api_read_key):
@@ -27,7 +27,6 @@ class Thingspeak():
             body_temperature_list.append(data_point.get('field4'))
             ECG_list.append(data_point.get('field5'))
 
-        # 換成台灣時間
         tw_time_list = self.format_time(time_list)
         return tw_time_list, bpm_list, temperature_list, humidity_list, body_temperature_list, ECG_list
 
@@ -42,11 +41,9 @@ class Thingspeak():
         return tw_time_list
 
     def gen_chart(self, time_list, field_list, label):
-        color = 'r'  # Default color for the chart
-
-        field_list = [float(value) if value and value != '' else 0 for value in field_list]
         plt.figure(figsize=(12, 6))
-        plt.plot(time_list, field_list, f'{color}-o', label=label)
+        field_list = [float(value) if value and value != '' else 0 for value in field_list]
+        plt.plot(time_list, field_list, 'b-o', label=label)
         plt.xlabel('Time')
         plt.ylabel('Value')
         plt.title(f'Thingspeak Data - {label}')
@@ -56,7 +53,7 @@ class Thingspeak():
         plt.close()
 
     def update_photo_size(self):
-        for label in ['BPM', 'temperature', 'humidity', 'body temperature', 'ECG']:
+        for label in ['BPM', 'temperature', 'humidity', 'body_temperature', 'ECG']:
             img = Image.open(f'{label}_chart.jpg')
             img_resized = img.resize((240, 240))
             img_resized.save(f'pre_{label}_chart.jpg')
@@ -65,17 +62,15 @@ class Thingspeak():
         CLIENT_ID = os.environ.get('IMGUR_CLIENT_ID')
         urls = []
         pre_urls = []
-        for label in ['BPM', 'temperature', 'humidity', 'body temperature', 'ECG']:
+        for label in ['BPM', 'temperature', 'humidity', 'body_temperature', 'ECG']:
             PATH = f'{label}_chart.jpg'
             title = f"Uploaded with PyImgur - {label}"
-
             im = pyimgur.Imgur(CLIENT_ID)
             uploaded_image = im.upload_image(PATH, title=title)
             urls.append(uploaded_image.link)
 
             pre_PATH = f'pre_{label}_chart.jpg'
             pre_title = f"Uploaded with pre_PyImgur - {label}"
-
             pre_im = pyimgur.Imgur(CLIENT_ID)
             uploaded_pre_image = pre_im.upload_image(pre_PATH, title=pre_title)
             pre_urls.append(uploaded_pre_image.link)
@@ -84,24 +79,27 @@ class Thingspeak():
 
     def process_and_upload_field(self, channel_id, api_read_key, field):
         tw_time_list, bpm_list, temperature_list, humidity_list, body_temperature_list, ECG_list = self.get_data_from_thingspeak(channel_id, api_read_key)
-
         if tw_time_list == 'Not Found' or bpm_list == 'Not Found':
             return 'Not Found'
 
-        field_data = {
+        field_lists = {
             'field1': bpm_list,
             'field2': temperature_list,
             'field3': humidity_list,
             'field4': body_temperature_list,
             'field5': ECG_list
         }
-
-        if field not in field_data:
+        
+        if field not in field_lists:
             return 'Invalid Field'
-
-        self.gen_chart(tw_time_list, field_data[field], field)
+        
+        self.gen_chart(tw_time_list, field_lists[field], field)
         self.update_photo_size()
-        chart_url, pre_chart_url = self.upload_to_imgur()
+        chart_links, pre_chart_links = self.upload_to_imgur()
 
-        return {'image_url': chart_url[0], 'pre_image_url': pre_chart_url[0]}  # Return the first chart URL for simplicity
+        return {
+            'image_url': chart_links[list(field_lists.keys()).index(field)],
+            'pre_image_url': pre_chart_links[list(field_lists.keys()).index(field)]
+        }
+
 
