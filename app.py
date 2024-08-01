@@ -6,10 +6,9 @@ import os
 import openai
 import traceback
 from thingspeak import Thingspeak  # 確保 thingspeak.py 和 app.py 在同一目錄下
+import logging
 
 app = Flask(__name__)
-
-# 配置路徑
 static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
 
 # Line API 初始化
@@ -20,27 +19,16 @@ handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
 # 授權用戶列表
-auth_user_list = ["U39b3f15d09b42fbd028e5689156a49e1"]
-auth_user_ai_list = ["U39b3f15d09b42fbd028e5689156a49e1"]
+auth_user_list = ["U39b3f15d09b42fbd028e5689156a49e1"]  # 允許使用圖表功能的用戶ID列表
+auth_user_ai_list = ["U39b3f15d09b42fbd028e5689156a49e1"]  # 允許使用AI功能的用戶ID列表
 
-def GPT_response(user_msg):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "回答問題時盡可能簡潔"},
-                {"role": "user", "content": user_msg},
-            ],
-            temperature=0.5,
-            max_tokens=500
-        )
-        reply_msg = response.choices[0].message['content'].strip()
-        return reply_msg
-    except Exception as e:
-        print(f"OpenAI API 錯誤: {e}")
-        return '對不起，我遇到了問題，無法處理請求。'
+def GPT_response(text):
+    response = openai.Completion.create(model="gpt-3.5-turbo", prompt=text, temperature=0.5, max_tokens=500)
+    print(response)
+    answer = response['choices'][0]['text'].replace('。 ', '')
+    return answer
 
-# 處理來自 /callback 的 POST 請求
+# 監聽所有來自 /callback 的 POST 請求
 @app.route("/callback", methods=['POST'])
 def callback():
     signature = request.headers['X-Line-Signature']
@@ -58,33 +46,38 @@ def handle_message(event):
     user_id = event.source.user_id
     input_msg = event.message.text
     check = input_msg[:3].lower()
-    user_msg = input_msg[3:].strip()
-
+    user_msg = input_msg[3:].strip()  # 例如 "2466473,GROLYCVTU08JWN8Q,field1"
+    
     if user_id in auth_user_list:
         if check == "圖表:":
             try:
-                channel_id, key = user_msg.split(',')
+                parts = user_msg.split(',')
+                if len(parts) != 3:
+                    raise ValueError("輸入格式錯誤")
+                channel_id, key, field = parts
+                print("用戶 channel_id: ", channel_id, "Read_key: ", key, "Field: ", field)
                 ts = Thingspeak()
-                results = ts.process_and_upload_all_fields(channel_id, key)
-                if results == 'Not Found':
+                result = ts.process_and_upload_field(channel_id, key, field)
+                if result == 'Not Found':
                     message = TextSendMessage(text="數據未找到或無法處理請求。")
+                elif result == 'Invalid Field':
+                    message = TextSendMessage(text="無效的 field 識別符。")
                 else:
-                    image_messages = [
-                        ImageSendMessage(
-                            original_content_url=urls['image_url'],
-                            preview_image_url=urls['pre_image_url']
-                        )
-                        for field, urls in results.items()
-                    ]
-                    message = image_messages
+                    image_message = ImageSendMessage(
+                        original_content_url=result['image_url'],
+                        preview_image_url=result['pre_image_url']
+                    )
+                    message = image_message
                 line_bot_api.reply_message(event.reply_token, message)
             except Exception as e:
                 print(f"處理圖表請求時錯誤: {e}")
-                line_bot_api.reply_message(event.reply_token, TextSendMessage('處理圖表時出現問題。請檢查輸入是否正確。'))
+                message = TextSendMessage(text="處理圖表時出現問題。請檢查輸入是否正確。")
+                line_bot_api.reply_message(event.reply_token, message)
         
         elif check == 'ai:' and user_id in auth_user_ai_list:
             try:
                 GPT_answer = GPT_response(user_msg)
+                print(GPT_answer)
                 line_bot_api.reply_message(event.reply_token, TextSendMessage(GPT_answer))
             except Exception as e:
                 print(f"GPT 回應錯誤: {e}")
@@ -106,6 +99,7 @@ def welcome(event):
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
