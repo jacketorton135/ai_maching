@@ -67,10 +67,16 @@ def handle_message(event):
                 parts = user_msg.split(',')
                 if len(parts) != 3:
                     raise ValueError("輸入格式錯誤。請使用正確格式，例如: '圖表:2466473,GROLYCVTU08JWN8Q,field1'")
+                
                 channel_id, key, field = parts
                 print("用戶 channel_id: ", channel_id, "Read_key: ", key, "Field: ", field)
+                
+                if field not in ['field1', 'field2', 'field3', 'field4', 'field5']:
+                    raise ValueError("無效的 field 識別符。請使用 'field1', 'field2', 'field3', 'field4', 或 'field5'。")
+                
                 ts = Thingspeak()
                 result = ts.process_and_upload_field(channel_id, key, field)
+                
                 if result == 'Not Found':
                     message = TextSendMessage(text="數據未找到或無法處理請求。")
                 elif result == 'Invalid Field':
@@ -112,6 +118,7 @@ def welcome(event):
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
