@@ -7,18 +7,18 @@ import pytz
 import pyimgur
 from PIL import Image
 
-class Thingspeak():
+class Thingspeak:
     def get_data_from_thingspeak(self, channel_id, api_read_key):
         url = f'https://thingspeak.com/channels/{channel_id}/feed.json?api_key={api_read_key}'
         data = requests.get(url).json()
         if data.get('error') == 'Not Found':
             return 'Not Found', 'Not Found'
-        time_list = list()
-        bpm_list = list()
-        temperature_list = list()
-        humidity_list = list()
-        body_temperature_list = list()
-        ECG_list = list()
+        time_list = []
+        bpm_list = []
+        temperature_list = []
+        humidity_list = []
+        body_temperature_list = []
+        ECG_list = []
         for data_point in data['feeds']:
             time_list.append(data_point.get('created_at'))
             bpm_list.append(data_point.get('field1'))
@@ -30,7 +30,7 @@ class Thingspeak():
         # 換成台灣時間
         tw_time_list = self.format_time(time_list)
         return tw_time_list, bpm_list, temperature_list, humidity_list, body_temperature_list, ECG_list
-    
+
     def format_time(self, time_list):
         taiwan_tz = pytz.timezone('Asia/Taipei')
         tw_time_list = []
@@ -40,11 +40,11 @@ class Thingspeak():
             dt_taiwan = dt_utc.astimezone(taiwan_tz)
             tw_time_list.append(dt_taiwan.strftime('%Y-%m-%d %H:%M:%S'))
         return tw_time_list
-    
+
     def gen_chart(self, time_list, *field_lists):
         labels = ['BPM', 'temperature', 'humidity', 'body temperature', 'ECG']
         colors = ['r', 'g', 'b', 'y', 'm']
-        
+
         for i, (field_list, label) in enumerate(zip(field_lists, labels)):
             field_list = [float(value) if value and value != '' else 0 for value in field_list]
             plt.figure(figsize=(12, 6))
@@ -64,7 +64,7 @@ class Thingspeak():
             img_resized.save(f'pre_{label}_chart.jpg')
 
     def upload_to_imgur(self):
-        CLIENT_ID = os.environ.get('IMGUR_CLIENT_ID')
+        CLIENT_ID = "8f20812be5e02f1"  # 使用你獲得的 Client ID
         urls = []
         pre_urls = []
         for label in ['BPM', 'temperature', 'humidity', 'body temperature', 'ECG']:
@@ -81,14 +81,14 @@ class Thingspeak():
             pre_im = pyimgur.Imgur(CLIENT_ID)
             uploaded_pre_image = pre_im.upload_image(pre_PATH, title=pre_title)
             pre_urls.append(uploaded_pre_image.link)
-        
+
         return urls, pre_urls
-    
+
     def process_and_upload_all_fields(self, channel_id, api_read_key):
         tw_time_list, bpm_list, temperature_list, humidity_list, body_temperature_list, ECG_list = self.get_data_from_thingspeak(channel_id, api_read_key)
         if tw_time_list == 'Not Found' or bpm_list == 'Not Found':
             return 'Not Found'
-        
+
         self.gen_chart(tw_time_list, bpm_list, temperature_list, humidity_list, body_temperature_list, ECG_list)
         self.update_photo_size()
         chart_links, pre_chart_links = self.upload_to_imgur()
@@ -106,5 +106,4 @@ if __name__ == "__main__":
     ts = Thingspeak()
     results = ts.process_and_upload_all_fields("2466473", "GROLYCVTU08JWN8Q")
     print(results)
-
 
