@@ -40,7 +40,7 @@ class Thingspeak():
         return tw_time_list
 
     def gen_chart(self, time_list, field_list, label):
-        plt.figure(figsize=(12, 8), dpi=100)  # 修改此行以調整圖形的大小和解析度
+        plt.figure(figsize=(12, 8), dpi=300)  # 修改此行以調整圖形的大小和解析度
         field_list = [float(value) if value and value != '' else 0 for value in field_list]
         plt.plot(time_list, field_list, 'b-o', label=label)
         plt.xlabel('Time')
@@ -56,7 +56,7 @@ class Thingspeak():
     def update_photo_size(self, file_path):
         try:
             img = Image.open(file_path)
-            img_resized = img.resize((240, 240))
+            img_resized = img.resize((1000, 1000))
             resized_file_path = file_path.replace('.jpg', '_resized.jpg')
             img_resized.save(resized_file_path)
             return resized_file_path
