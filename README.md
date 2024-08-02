@@ -1,5 +1,7 @@
 
-MR 蔣AI機器人
+MR 蔣AI機器人 架構
+![image](https://github.com/user-attachments/assets/aeb26cfc-de2a-4be3-aa5c-dba158538d94)
+
 
 感謝您的訊息！
 
