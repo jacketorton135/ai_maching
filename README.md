@@ -19,5 +19,9 @@ ai:訊息 回應訊息
 ![image](https://github.com/user-attachments/assets/256873b5-1735-42e4-8c6c-985923598631)
 
 
+![image](https://github.com/user-attachments/assets/f082ce52-332e-435d-9329-e7acb1f77420)
+
+
+
 
 ![image](https://img.ltn.com.tw/Upload/health/page/800/2022/05/14/3926479_1.jpg)](https://github.com/jacketorton135/proj_linebot/blob/main/images.jpg)
