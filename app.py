@@ -11,7 +11,7 @@ import openai
 import traceback
 from thingspeak import Thingspeak  # 確認 thingspeak.py 和 app.py 在同一目錄下
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="./static", static_url_path="/static")
 static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
 
 # Channel Access Token
@@ -82,12 +82,13 @@ def handle_message(event):
                 elif result == 'Invalid Field':
                     message = TextSendMessage(text="無效的 field 識別符。請使用 'field1', 'field2', 'field3', 'field4', 或 'field5'。")
                 else:
+                    image_path = result['image_path']
+                    image_url = f"https://{request.host}/static/{os.path.basename(image_path)}"
                     image_message = ImageSendMessage(
-                        original_content_url=result['image_url'],
-                        preview_image_url=result['pre_image_url']
+                        original_content_url=image_url,
+                        preview_image_url=image_url
                     )
-                    message = image_message
-                line_bot_api.reply_message(event.reply_token, message)
+                    line_bot_api.reply_message(event.reply_token, image_message)
             except Exception as e:
                 print(f"處理圖表請求時錯誤: {e}")
                 message = TextSendMessage(text=f"處理圖表請求時出現問題: {str(e)}")
@@ -118,6 +119,7 @@ def welcome(event):
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
