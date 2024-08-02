@@ -84,86 +84,76 @@ def handle_message(event):
     input_msg = event.message.text.lower().strip()
     
     if user_id in auth_user_list:
-        if input_msg == "bmi":
-            data = get_bmi_data()
-            message_text = ""
-            for row in data:
-                bmi = float(row.get("BMI"))
-                time = row.get("Time")
-                status = check_normal_or_abnormal(bmi, (18.5, 24.9))
-                message_text += f"BMI: {bmi}, 時間: {time}, 狀態: {status}\n"
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(message_text))
-        
-        elif input_msg == "溫度":
-            data = get_environment_data()
-            message_text = ""
-            for row in data:
-                temperature = float(row.get("Temperature"))
-                time = row.get("Time")
-                status = check_normal_or_abnormal(temperature, (20, 25))
-                message_text += f"溫度: {temperature}, 時間: {time}, 狀態: {status}\n"
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(message_text))
-        
-        elif input_msg == "濕度":
-            data = get_environment_data()
-            message_text = ""
-            for row in data:
-                humidity = float(row.get("Humidity"))
-                time = row.get("Time")
-                status = check_normal_or_abnormal(humidity, (30, 50))
-                message_text += f"濕度: {humidity}, 時間: {time}, 狀態: {status}\n"
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(message_text))
-        
-        elif input_msg == "體溫":
-            data = get_environment_data()
-            message_text = ""
-            for row in data:
-                body_temperature = float(row.get("Body Temperature"))
-                time = row.get("Time")
-                status = check_normal_or_abnormal(body_temperature, (36.5, 37.5))
-                message_text += f"體溫: {body_temperature}, 時間: {time}, 狀態: {status}\n"
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(message_text))
-        
-        elif input_msg == "心跳":
-            data = get_heartbeat_data()
-            message_text = ""
-            for row in data:
-                heartbeat = float(row.get("Heartbeat"))
-                time = row.get("Time")
-                status = check_normal_or_abnormal(heartbeat, (60, 100))
-                message_text += f"心跳: {heartbeat}, 時間: {time}, 狀態: {status}\n"
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(message_text))
-        
-        elif input_msg.startswith('ai:') and user_id in auth_user_ai_list:
+        if input_msg.startswith('ai:'):
             try:
                 user_msg = input_msg[3:].strip()
-                GPT_answer = GPT_response(user_msg)
-                line_bot_api.reply_message(event.reply_token, TextSendMessage(GPT_answer))
+                if user_msg == "心跳":
+                    data = get_heartbeat_data()
+                    latest_row = data[-1]
+                    heartbeat = float(latest_row.get("Heartbeat"))
+                    time = latest_row.get("Time")
+                    status = check_normal_or_abnormal(heartbeat, (60, 100))
+                    message_text = f"心跳: {heartbeat}, 時間: {time}, 狀態: {status}"
+                    line_bot_api.reply_message(event.reply_token, TextSendMessage(message_text))
+                elif user_msg == "溫度":
+                    data = get_environment_data()
+                    latest_row = data[-1]
+                    temperature = float(latest_row.get("Temperature"))
+                    time = latest_row.get("Time")
+                    status = check_normal_or_abnormal(temperature, (20, 25))
+                    message_text = f"溫度: {temperature}, 時間: {time}, 狀態: {status}"
+                    line_bot_api.reply_message(event.reply_token, TextSendMessage(message_text))
+                elif user_msg == "濕度":
+                    data = get_environment_data()
+                    latest_row = data[-1]
+                    humidity = float(latest_row.get("Humidity"))
+                    time = latest_row.get("Time")
+                    status = check_normal_or_abnormal(humidity, (30, 50))
+                    message_text = f"濕度: {humidity}, 時間: {time}, 狀態: {status}"
+                    line_bot_api.reply_message(event.reply_token, TextSendMessage(message_text))
+                elif user_msg == "體溫":
+                    data = get_environment_data()
+                    latest_row = data[-1]
+                    body_temperature = float(latest_row.get("Body Temperature"))
+                    time = latest_row.get("Time")
+                    status = check_normal_or_abnormal(body_temperature, (36.5, 37.5))
+                    message_text = f"體溫: {body_temperature}, 時間: {time}, 狀態: {status}"
+                    line_bot_api.reply_message(event.reply_token, TextSendMessage(message_text))
+                elif user_msg == "bmi":
+                    data = get_bmi_data()
+                    latest_row = data[-1]
+                    bmi = float(latest_row.get("BMI"))
+                    time = latest_row.get("Time")
+                    status = check_normal_or_abnormal(bmi, (18.5, 24.9))
+                    message_text = f"BMI: {bmi}, 時間: {time}, 狀態: {status}"
+                    line_bot_api.reply_message(event.reply_token, TextSendMessage(message_text))
+                else:
+                    GPT_answer = GPT_response(user_msg)
+                    line_bot_api.reply_message(event.reply_token, TextSendMessage(GPT_answer))
             except Exception as e:
                 print(f"GPT 回應錯誤: {e}")
                 line_bot_api.reply_message(event.reply_token, TextSendMessage('對不起，我無法處理你的請求。'))
+                
+        elif input_msg.startswith("圖表:"):
+            if user_id in auth_user_list:
+                try:
+                    parts = input_msg[3:].strip().split(',')
+                    if len(parts) != 3:
+                        raise ValueError("輸入格式錯誤。請使用正確格式，例如: '圖表:2466473,GROLYCVTU08JWN8Q,field1'")
+                    
+                    channel_id, key, field = parts
+                    print("用戶 channel_id: ", channel_id, "Read_key: ", key, "Field: ", field)
+                    
+                    if field not in ['field1', 'field2', 'field3', 'field4', 'field5']:
+                        raise ValueError("無效的 field 識別符。請使用 'field1', 'field2', 'field3', 'field4', 或 'field5'。")
+                    
+                    ts = Thingspeak()
+                    result = ts.process_and_upload_field(channel_id, key, field)
+                    line_bot_api.reply_message(event.reply_token, TextSendMessage(result))
+                except Exception as e:
+                    print(f"圖表處理錯誤: {e}")
+                    line_bot_api.reply_message(event.reply_token, TextSendMessage('對不起，無法生成圖表。'))
 
-    # 圖表處理邏輯
-    elif input_msg.startswith("圖表:"):
-        if user_id in auth_user_list:
-            try:
-                parts = input_msg[3:].strip().split(',')
-                if len(parts) != 3:
-                    raise ValueError("輸入格式錯誤。請使用正確格式，例如: '圖表:2466473,GROLYCVTU08JWN8Q,field1'")
-                
-                channel_id, key, field = parts
-                print("用戶 channel_id: ", channel_id, "Read_key: ", key, "Field: ", field)
-                
-                if field not in ['field1', 'field2', 'field3', 'field4', 'field5']:
-                    raise ValueError("無效的 field 識別符。請使用 'field1', 'field2', 'field3', 'field4', 或 'field5'。")
-                
-                ts = Thingspeak()
-                result = ts.process_and_upload_field(channel_id, key, field)
-                line_bot_api.reply_message(event.reply_token, TextSendMessage(result))
-            except Exception as e:
-                print(f"圖表處理錯誤: {e}")
-                line_bot_api.reply_message(event.reply_token, TextSendMessage('對不起，無法生成圖表。'))
-    
 @handler.add(PostbackEvent)
 def handle_postback(event):
     print(event.postback.data)
