@@ -1,6 +1,7 @@
 
 MR 蔣AI機器人 架構
-![image](https://github.com/user-attachments/assets/aeb26cfc-de2a-4be3-aa5c-dba158538d94)
+![image](https://github.com/user-attachments/assets/fc0ebb42-b969-43c1-a9ff-6a51d10f30fd)
+
 
 
 感謝您的訊息！
