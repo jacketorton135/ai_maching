@@ -1,7 +1,7 @@
 import os
 import openai
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+import requests
+import csv
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -22,34 +22,25 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 auth_user_list = ["U39b3f15d09b42fbd028e5689156a49e1"]
 auth_user_ai_list = ["U39b3f15d09b42fbd028e5689156a49e1"]
 
-# Google Sheets API初始化
-def init_gspread():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name(os.getenv('GOOGLE_SHEETS_CREDENTIALS'), scope)
-    client = gspread.authorize(creds)
-    return client
+# 爬取 CSV 數據
+def fetch_csv_data(csv_url):
+    response = requests.get(csv_url)
+    decoded_content = response.content.decode('utf-8')
+    cr = csv.DictReader(decoded_content.splitlines(), delimiter=',')
+    return list(cr)
 
-# 爬取 Google Sheets 數據
-def fetch_sheet_data(sheet_url, sheet_name):
-    client = init_gspread()
-    sheet = client.open_by_url(sheet_url).worksheet(sheet_name)
-    return sheet.get_all_records()
-
-# 爬取特定的 Google Sheets
+# 爬取特定的 CSV
 def get_bmi_data():
-    sheet_url = 'https://docs.google.com/spreadsheets/d/1ji-9bYlxt3KDxJvFIdat-3NwIkL7ejUa6wMFXgFe2a0/edit?resourcekey=&gid=1661867759'
-    sheet_name = 'Sheet1'
-    return fetch_sheet_data(sheet_url, sheet_name)
+    csv_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTbj3f0rhEu2aCljm1AgkPiaqU7XLGfLUfmL_3NVClYABWXmarViEg1RSE4Q9St0YG_rR74VZyNh7MF/pub?output=csv'
+    return fetch_csv_data(csv_url)
 
 def get_environment_data():
-    sheet_url = 'https://docs.google.com/spreadsheets/d/12rkfKKxrm3NcnrZNgZPzml9oNZm4alc2l-8UFsA2iCY/edit?resourcekey#gid=1685037583'
-    sheet_name = 'Sheet1'
-    return fetch_sheet_data(sheet_url, sheet_name)
+    csv_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5C_o47POhPXTZEgq40budOJB1ygTTZx9D_086I-ZbHfApFPZB_Ra5Xi09Qu6hxzk9_QXJ-7-QFoKD/pub?output=csv'
+    return fetch_csv_data(csv_url)
 
 def get_heartbeat_data():
-    sheet_url = 'https://docs.google.com/spreadsheets/d/1DUD0yMOqnjaZB5fhIytxBM0Ajmg6mP72oAmwC-grT4g/edit?resourcekey=&gid=1895836984'
-    sheet_name = 'Sheet1'
-    return fetch_sheet_data(sheet_url, sheet_name)
+    csv_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSULVwFdSh9_HuIJe1dWPae-jzcQYsyYb5DuRfXHtDenUlr1oSYTRr-AQ-aMthcCsNRTcVIbvmt_7qJ/pub?output=csv'
+    return fetch_csv_data(csv_url)
 
 # 判斷數值是否正常
 def check_normal_or_abnormal(value, normal_range):
@@ -97,7 +88,7 @@ def handle_message(event):
             data = get_bmi_data()
             message_text = ""
             for row in data:
-                bmi = row.get("BMI")
+                bmi = float(row.get("BMI"))
                 time = row.get("Time")
                 status = check_normal_or_abnormal(bmi, (18.5, 24.9))
                 message_text += f"BMI: {bmi}, 時間: {time}, 狀態: {status}\n"
@@ -107,7 +98,7 @@ def handle_message(event):
             data = get_environment_data()
             message_text = ""
             for row in data:
-                temperature = row.get("Temperature")
+                temperature = float(row.get("Temperature"))
                 time = row.get("Time")
                 status = check_normal_or_abnormal(temperature, (20, 25))
                 message_text += f"溫度: {temperature}, 時間: {time}, 狀態: {status}\n"
@@ -117,7 +108,7 @@ def handle_message(event):
             data = get_environment_data()
             message_text = ""
             for row in data:
-                humidity = row.get("Humidity")
+                humidity = float(row.get("Humidity"))
                 time = row.get("Time")
                 status = check_normal_or_abnormal(humidity, (30, 50))
                 message_text += f"濕度: {humidity}, 時間: {time}, 狀態: {status}\n"
@@ -127,7 +118,7 @@ def handle_message(event):
             data = get_environment_data()
             message_text = ""
             for row in data:
-                body_temperature = row.get("Body Temperature")
+                body_temperature = float(row.get("Body Temperature"))
                 time = row.get("Time")
                 status = check_normal_or_abnormal(body_temperature, (36.5, 37.5))
                 message_text += f"體溫: {body_temperature}, 時間: {time}, 狀態: {status}\n"
@@ -137,7 +128,7 @@ def handle_message(event):
             data = get_heartbeat_data()
             message_text = ""
             for row in data:
-                heartbeat = row.get("Heartbeat")
+                heartbeat = float(row.get("Heartbeat"))
                 time = row.get("Time")
                 status = check_normal_or_abnormal(heartbeat, (60, 100))
                 message_text += f"心跳: {heartbeat}, 時間: {time}, 狀態: {status}\n"
@@ -189,6 +180,7 @@ def welcome(event):
 if __name__ == "__main__":
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
